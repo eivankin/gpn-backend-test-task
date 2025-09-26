@@ -1,23 +1,32 @@
-## Async template on FastAPI and SQLAlchemy 2
+Разработать API для управления заметками на FastAPI.
 
-[![Test Coverage](https://codecov.io/gh/modern-python/fastapi-sqlalchemy-template/branch/main/graph/badge.svg)](https://codecov.io/gh/modern-python/fastapi-sqlalchemy-template)
-[![GitHub issues](https://img.shields.io/github/issues/modern-python/fastapi-sqlalchemy-template)](https://github.com/modern-python/fastapi-sqlalchemy-template/issues)
-[![GitHub forks](https://img.shields.io/github/forks/modern-python/fastapi-sqlalchemy-template)](https://github.com/modern-python/fastapi-sqlalchemy-template/network)
-[![GitHub stars](https://img.shields.io/github/stars/modern-python/fastapi-sqlalchemy-template)](https://github.com/modern-python/fastapi-sqlalchemy-template/stargazers)
+Объект "заметка" имеет следующие поля:
+- title - Заголовок длиной не более 256 символов;
+- body - Тело не более 65536 символов. 
 
-### Description
-Production-ready dockerized async REST API on FastAPI with SQLAlchemy and PostgreSQL
+Функционал приложения должен быть следующим: 
 
-## Key Features
-- tests on `pytest` with automatic rollback after each test case
-- IOC (Inversion of Control) container built on [modern-di](https://github.com/modern-python/modern-di/)
-- Observability tools integration built on [lite-bootstrap](https://github.com/modern-python/lite-bootstrap/)
-- Linting and formatting using `ruff` and `mypy`
-- `Alembic` for DB migrations
+1. Авторизация пользователя с ролью "User" и ролью "Admin";
 
-You can clone this project or use [this template](https://github.com/modern-python/modern-python-template) for fast [micro]service creation from scratch.
+2. Авторизованный пользователь системы с ролью "User" должен иметь возможность работать с заметками следующим образом:
+    - Cоздать заметку;
+    - Изменить заметку;
+    - Удалить заметку;
+    - Получать список всех заметок;
+    - Получать конкретную заметку;
 
-### After `git clone` run
-```bash
-just --list
-```
+    У пользователя с ролью "User" должны быть права для работы с заметками которые создавал он сам. Делать какие либо действия с заметками, в том числе и просмотр заметок других пользователей, возможность у этой роли быть не должно.
+
+3. Авторизованный пользователь системы с ролью "Admin" должен иметь возможность работать с заметками следующим образом:
+    - Восстановить удаленную заметку;
+    - Получить конкретную заметку;
+    - Получить список всех заметок;
+    - Получить список всех заметок конкретного пользователя;
+
+4. Все перечисленные действия всех ролей необходимо логгировать в файл;
+
+5. *Добавить юнит-тесты; 
+
+6. *Добавить Dockerfile для запуска проекта с помощью docker;
+
+7. Добавить инструкцию запуска проекта в README.md.

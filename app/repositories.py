@@ -4,17 +4,9 @@ from advanced_alchemy.service import SQLAlchemyAsyncRepositoryService
 from app import models
 
 
-class DecksRepository(SQLAlchemyAsyncRepository[models.Deck]):
-    model_type = models.Deck
+class NotesRepository(SQLAlchemyAsyncRepository[models.Note]):
+    model_type = models.Note
 
 
-class DecksService(SQLAlchemyAsyncRepositoryService[models.Deck]):
-    repository_type = DecksRepository
-
-
-class CardsRepository(SQLAlchemyAsyncRepository[models.Card]):
-    model_type = models.Card
-
-
-class CardsService(SQLAlchemyAsyncRepositoryService[models.Card]):
-    repository_type = CardsRepository
+class NotesService(SQLAlchemyAsyncRepositoryService[models.Note]):
+    repository_type = NotesRepository

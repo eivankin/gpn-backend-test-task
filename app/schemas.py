@@ -1,43 +1,23 @@
+from typing import Annotated
+
 import pydantic
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, PositiveInt, StringConstraints
+
+from app.constraints import NotesConstraints as Constraints
 
 
 class Base(BaseModel):
     model_config = pydantic.ConfigDict(from_attributes=True)
 
 
-class CardBase(Base):
-    front: str
-    back: str | None = None
-    hint: str | None = None
+class NoteBase(Base):
+    title: Annotated[str, StringConstraints(max_length=Constraints.max_title_length)]
+    body: Annotated[str, StringConstraints(max_length=Constraints.max_body_length)]
 
 
-class CardCreate(CardBase):
+class NoteCreate(NoteBase):
     pass
 
 
-class Card(CardBase):
+class Note(NoteBase):
     id: PositiveInt
-    deck_id: PositiveInt | None = None
-
-
-class Cards(Base):
-    items: list[Card]
-
-
-class DeckBase(Base):
-    name: str
-    description: str | None = None
-
-
-class DeckCreate(DeckBase):
-    pass
-
-
-class Deck(DeckBase):
-    id: PositiveInt
-    cards: list[Card] | None
-
-
-class Decks(Base):
-    items: list[Deck]
