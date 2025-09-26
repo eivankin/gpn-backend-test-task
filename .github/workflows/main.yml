@@ -49,17 +49,14 @@ jobs:
       - run: |
           uv sync --all-extras --frozen --no-install-project
           uv run alembic upgrade head
-          uv run pytest . --cov=. --cov-report xml
+          uv run pytest . --cov=. --cov-report html
         env:
           SERVICE_ENVIRONMENT: ci
           PYTHONDONTWRITEBYTECODE: 1
           PYTHONUNBUFFERED: 1
           DB_DSN: postgresql+asyncpg://postgres:password@127.0.0.1/postgres
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.0.1
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
         with:
-          files: ./coverage.xml
-          flags: unittests
-          name: codecov-${{ matrix.python-version }}
+          path: ./htmlcov
+          name: coverage-report
