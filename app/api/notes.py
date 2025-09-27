@@ -5,14 +5,17 @@ from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.extensions.fastapi import filters
 from advanced_alchemy.extensions.fastapi.providers import provide_filters
 from advanced_alchemy.service import OffsetPagination
-from fastapi import Depends
+from fastapi import Depends, status
 from modern_di_fastapi import FromDI
-from starlette import status
 
 from app import ioc, models, schemas
+from app.auth import get_current_user
 from app.error_messages import NotesErrorMessages as Errors
+from app.exceptions import AccessDeniedError
 from app.repositories import NotesService
 
+
+# TODO: separate logger for user actions
 
 ROUTER: typing.Final = fastapi.APIRouter(prefix="/notes")
 
@@ -30,8 +33,16 @@ async def list_notes(
         ),
     ],
     notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
+    user: models.User = Depends(get_current_user),
 ) -> OffsetPagination[schemas.Note]:
-    results, total = await notes_service.list_and_count(*filters)
+    if user.is_admin:  # Fetch all available notes
+        results, total = await notes_service.list_and_count(*filters)
+    else:
+        results, total = await notes_service.list_and_count(
+            models.Note.author_id == user.id,
+            notes_service.not_deleted_filter,
+            *filters,
+        )
     return notes_service.to_schema(results, total, filters=filters, schema_type=schemas.Note)
 
 
@@ -39,12 +50,14 @@ async def list_notes(
 async def get_note(
     note_id: int,
     notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
+    user: models.User = Depends(get_current_user),
 ) -> schemas.Note:
-    instance = await notes_service.get_one_or_none(
-        models.Note.id == note_id,
-    )
-    if not instance:
-        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found)
+    try:
+        instance = await notes_service.get_one_with_access_check(models.Note.id == note_id, user=user)
+    except AccessDeniedError:
+        raise fastapi.HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied) from None
+    except NotFoundError:
+        raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found) from None
 
     return typing.cast("schemas.Note", instance)
 
@@ -54,9 +67,12 @@ async def update_note(
     note_id: int,
     data: schemas.NoteCreate,
     notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
+    user: models.User = Depends(get_current_user),
 ) -> schemas.Note:
     try:
-        instance = await notes_service.update(data=data.model_dump(), item_id=note_id)
+        instance = await notes_service.update_with_access_check(data=data.model_dump(), item_id=note_id, user=user)
+    except AccessDeniedError:
+        raise fastapi.HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied) from None
     except NotFoundError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found) from None
 
@@ -67,9 +83,12 @@ async def update_note(
 async def delete_note(
     note_id: int,
     notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
+    user: models.User = Depends(get_current_user),
 ) -> None:
     try:
-        await notes_service.delete(item_id=note_id)
+        await notes_service.soft_delete(item_id=note_id, user=user)
+    except AccessDeniedError:
+        raise fastapi.HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied) from None
     except NotFoundError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found) from None
 
@@ -78,6 +97,10 @@ async def delete_note(
 async def create_note(
     data: schemas.NoteCreate,
     notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
+    user: models.User = Depends(get_current_user),
 ) -> schemas.Note:
-    instance = await notes_service.create(data.model_dump())
+    instance = await notes_service.create_with_author(data.model_dump(), author=user)
     return typing.cast("schemas.Note", instance)
+
+
+# TODO: handle restore deleted note by admin

@@ -6,12 +6,14 @@ from lite_bootstrap import FastAPIBootstrapper
 from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
-from app.api.notes import ROUTER
+from app.api.notes import ROUTER as NOTES_ROUTER
+from app.api.users import ROUTER as USERS_ROUTER
 from app.settings import settings
 
 
 def include_routers(app: fastapi.FastAPI) -> None:
-    app.include_router(ROUTER, prefix="/api")
+    app.include_router(NOTES_ROUTER, prefix="/api")
+    app.include_router(USERS_ROUTER, prefix="/api")
 
 
 def build_app() -> fastapi.FastAPI:

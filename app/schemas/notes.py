@@ -21,3 +21,4 @@ class NoteCreate(NoteBase):
 
 class Note(NoteBase):
     id: PositiveInt
+    author_id: PositiveInt

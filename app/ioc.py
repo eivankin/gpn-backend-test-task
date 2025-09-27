@@ -9,3 +9,4 @@ class Dependencies(BaseGraph):
     session = providers.Resource(Scope.REQUEST, create_session, engine=database_engine.cast)
 
     notes_service = providers.Factory(Scope.REQUEST, repositories.NotesService, session=session.cast, auto_commit=True)
+    users_service = providers.Factory(Scope.REQUEST, repositories.UsersService, session=session.cast, auto_commit=True)

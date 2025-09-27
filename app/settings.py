@@ -3,6 +3,9 @@ from lite_bootstrap import FastAPIConfig
 from sqlalchemy.engine.url import URL, make_url
 
 
+# TODO: separate logger for user actions
+
+
 class Settings(pydantic_settings.BaseSettings):
     service_name: str = "Notes API"
     service_version: str = "1.0.0"
@@ -27,6 +30,11 @@ class Settings(pydantic_settings.BaseSettings):
     cors_allowed_methods: list[str] = [""]
     cors_allowed_headers: list[str] = [""]
     cors_exposed_headers: list[str] = []
+
+    # JWT token settings
+    jwt_algorithm: str = "HS256"
+    jwt_token_expire_minutes: int = 30
+    jwt_secret_key: str = ""  # change me!
 
     @property
     def db_dsn_parsed(self) -> URL:

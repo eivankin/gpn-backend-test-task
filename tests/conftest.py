@@ -1,4 +1,6 @@
 import typing
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import fastapi
 import modern_di
@@ -10,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import ioc
 from app.application import build_app
+from tests.utils import user_auth
 
 
 @pytest.fixture
@@ -48,3 +51,15 @@ async def db_session(di_container: modern_di.Container) -> typing.AsyncIterator[
             await transaction.rollback()
         await connection.close()
         await engine.dispose()
+
+
+@pytest.fixture
+async def user_client(
+    client: AsyncClient, db_session: AsyncSession, app: fastapi.FastAPI
+) -> AsyncGenerator[AsyncClient, Any]:
+    token, user = await user_auth(client, db_session)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test", headers={"Authorization": f"Bearer {token}"}
+    ) as client:
+        client.user = user
+        yield client
