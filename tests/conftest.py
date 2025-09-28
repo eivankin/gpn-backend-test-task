@@ -60,6 +60,6 @@ async def user_client(
     token, user = await user_auth(client, db_session)
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test", headers={"Authorization": f"Bearer {token}"}
-    ) as client:
-        client.user = user
-        yield client
+    ) as user_client:
+        user_client.user = user
+        yield user_client

@@ -12,12 +12,12 @@ async def get_user(db_session: AsyncSession, is_admin: bool = False) -> models.U
 
 
 async def get_token(client: AsyncClient, user: models.User) -> str:
-    response = await client.post("/api/users/token", data={"username": user.login, "password": "password"})
+    response = await client.post("/api/users/token/", data={"username": user.login, "password": "password"})
     assert response.status_code == fastapi.status.HTTP_200_OK
     return response.json()["access_token"]
 
 
-async def user_auth(client: AsyncClient, db_session: AsyncSession) -> tuple[str, models.User]:
-    user = await get_user(db_session)
+async def user_auth(client: AsyncClient, db_session: AsyncSession, is_admin: bool = False) -> tuple[str, models.User]:
+    user = await get_user(db_session, is_admin)
     token = await get_token(client, user)
     return token, user

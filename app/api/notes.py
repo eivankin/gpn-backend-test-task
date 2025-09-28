@@ -20,8 +20,8 @@ from app.repositories import NotesService
 ROUTER: typing.Final = fastapi.APIRouter(prefix="/notes")
 
 
-@ROUTER.get("/", response_model=OffsetPagination[schemas.Note])
-async def list_notes(
+@ROUTER.get("/my/", response_model=OffsetPagination[schemas.Note])
+async def list_my_notes(
     filters: typing.Annotated[
         list[filters.FilterTypes],
         Depends(
@@ -35,14 +35,11 @@ async def list_notes(
     notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
     user: models.User = Depends(get_current_user),
 ) -> OffsetPagination[schemas.Note]:
-    if user.is_admin:  # Fetch all available notes
-        results, total = await notes_service.list_and_count(*filters)
-    else:
-        results, total = await notes_service.list_and_count(
-            models.Note.author_id == user.id,
-            notes_service.not_deleted_filter,
-            *filters,
-        )
+    results, total = await notes_service.list_and_count(
+        models.Note.author_id == user.id,
+        notes_service.not_deleted_filter,
+        *filters,
+    )
     return notes_service.to_schema(results, total, filters=filters, schema_type=schemas.Note)
 
 
@@ -55,7 +52,9 @@ async def get_note(
     try:
         instance = await notes_service.get_one_with_access_check(models.Note.id == note_id, user=user)
     except AccessDeniedError:
-        raise fastapi.HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied) from None
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied_only_owner
+        ) from None
     except NotFoundError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found) from None
 
@@ -72,7 +71,9 @@ async def update_note(
     try:
         instance = await notes_service.update_with_access_check(data=data.model_dump(), item_id=note_id, user=user)
     except AccessDeniedError:
-        raise fastapi.HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied) from None
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied_only_owner
+        ) from None
     except NotFoundError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found) from None
 
@@ -88,7 +89,9 @@ async def delete_note(
     try:
         await notes_service.soft_delete(item_id=note_id, user=user)
     except AccessDeniedError:
-        raise fastapi.HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied) from None
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied_only_owner
+        ) from None
     except NotFoundError:
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found) from None
 

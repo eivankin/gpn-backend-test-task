@@ -33,13 +33,13 @@ class InputExamples(StrEnum):
 
 async def test_get_notes_empty(user_client: AsyncClient) -> None:
     response = await user_client.get(
-        "/api/notes/",
+        "/api/notes/my/",
     )
     assert response.status_code == status.HTTP_200_OK
     assert len(response.json()["items"]) == 0
 
 
-async def test_get_note_does_not_exist(user_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_note_does_not_exist(user_client: AsyncClient) -> None:
     response = await user_client.get(
         "/api/notes/0/",
     )
@@ -52,7 +52,7 @@ async def test_get_notes(user_client: AsyncClient, db_session: AsyncSession) -> 
     note = await factories.NoteFactory.create_async(author_id=user_client.user.id)
 
     response = await user_client.get(
-        "/api/notes/",
+        "/api/notes/my/",
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -68,7 +68,7 @@ async def test_get_notes_from_other_user(user_client: AsyncClient, db_session: A
     await factories.NoteFactory.create_async(author_id=second_user.id)
 
     response = await user_client.get(
-        "/api/notes/",
+        "/api/notes/my/",
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -98,7 +98,7 @@ async def test_get_one_note_forbidden(user_client: AsyncClient, db_session: Asyn
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
-    assert data["detail"] == NotesErrorMessages.access_denied
+    assert data["detail"] == NotesErrorMessages.access_denied_only_owner
 
 
 @pytest.mark.parametrize(
@@ -191,6 +191,20 @@ async def test_put_notes(
         assert body != result["body"]
 
 
+async def test_put_notes_forbidden(user_client: AsyncClient, db_session: AsyncSession) -> None:
+    second_user = await get_user(db_session)
+    factories.NoteFactory.__async_session__ = db_session
+    note = await factories.NoteFactory.create_async(author_id=second_user.id)
+
+    response = await user_client.put(
+        f"/api/notes/{note.id}/",
+        json={"title": "some", "body": "once told me"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    data = response.json()
+    assert data["detail"] == NotesErrorMessages.access_denied_only_owner
+
+
 async def test_delete_note(user_client: AsyncClient, db_session: AsyncSession) -> None:
     factories.NoteFactory.__async_session__ = db_session
     note = await factories.NoteFactory.create_async(author_id=user_client.user.id)
@@ -215,4 +229,17 @@ async def test_delete_note_does_not_exist(user_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-# TODO: 403 for put & delete, admin tests. test auth in general (invalid token, invalid creds, no creds)
+async def test_delete_note_forbidden(user_client: AsyncClient, db_session: AsyncSession) -> None:
+    second_user = await get_user(db_session)
+    factories.NoteFactory.__async_session__ = db_session
+    note = await factories.NoteFactory.create_async(author_id=second_user.id)
+
+    response = await user_client.delete(
+        f"/api/notes/{note.id}/",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    data = response.json()
+    assert data["detail"] == NotesErrorMessages.access_denied_only_owner
+
+
+# TODO: test admin methods
