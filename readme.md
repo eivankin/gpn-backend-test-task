@@ -2,9 +2,35 @@
 
 ## Инструкции по запуску
 
-TODO
+1. Склонировать репозиторий:
+    ```bash
+    git clone https://github.com/eivankin/gpn-backend-test-task
+    ```
+2. Если установлен пакет `just` (`sudo apt install just`), то можно запустить приложение командой:
+    ```bash
+    just run-demo
+    ```
+   Эта команда включает в себя сборку docker-образа, заполнение базы данных тестовыми примерами и запуск приложения. Сервис будет доступен по адресу [http://localhost:8000](http://localhost:8000). Swagger-документация будет доступна по адресу [http://localhost:8000/docs](http://localhost:8000/docs). Будут созданы и доступны для авторизации администратор с логином `admin` и паролем `admin`, а также пользователь с логином `user_1` и паролем `user_1`. 
 
-## Задача
+3. Для запуска без использования `just` можно воспользоваться командами:
+    ```bash
+    docker compose build application
+    docker compose run --service-ports application sh -c "sleep 1 && uv run alembic upgrade head && uv run python -m scripts.seed_db && uv run python -m app"
+    ```
+
+## Описание доступных команд с `just`
+
+- `run-demo` - запуск приложения с заполнением базы данных тестовыми примерами;
+- `run` - запуск приложения;
+- `seed` - заполнение базы данных тестовыми примерами;
+- `install` - установка зависимостей и создание виртуального окружения;
+- `build` - сборка docker-образа;
+- `lint` - проверка стиля кода;
+- `test` - запуск тестов;
+- `down` - остановка docker-контейнеров;
+- `sh` - запуск интерактивного bash-сессии внутри docker-контейнера;
+
+## Описание задачи
 
 Разработать API для управления заметками на FastAPI.
 
@@ -37,6 +63,7 @@ TODO
 
 6. *Добавить Dockerfile для запуска проекта с помощью docker;
 
-7. Добавить инструкцию запуска проекта в README.md. TODO
+7. Добавить инструкцию запуска проекта в README.md.
 
-TODO: add script to create test data (seeding) and a user with given login, pwd and role
+## Благодарности
+Этот проект создан на базе шаблона [fastapi-sqlalchemy-template](https://github.com/modern-python/fastapi-sqlalchemy-template)

@@ -1,5 +1,5 @@
 default: install lint build test
-run-demo: install build seed run
+run-demo: build seed run
 
 down:
     docker compose down --remove-orphans
