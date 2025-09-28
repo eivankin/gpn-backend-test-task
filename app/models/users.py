@@ -26,3 +26,7 @@ class User(BigIntAuditBase):
         nullable=False,
         default=False,
     )
+
+    @property
+    def verbose_role(self) -> str:
+        return "admin" if self.is_admin else "user"

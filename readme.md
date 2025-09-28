@@ -26,7 +26,7 @@ TODO
     У пользователя с ролью "User" должны быть права для работы с заметками которые создавал он сам. Делать какие либо действия с заметками, в том числе и просмотр заметок других пользователей, возможность у этой роли быть не должно.
 
 3. Авторизованный пользователь системы с ролью "Admin" должен иметь возможность работать с заметками следующим образом:
-    - Восстановить удаленную заметку;
+    - Восстановить удаленную заметку; TODO
     - Получить конкретную заметку;
     - Получить список всех заметок;
     - Получить список всех заметок конкретного пользователя;
@@ -39,5 +39,4 @@ TODO
 
 7. Добавить инструкцию запуска проекта в README.md. TODO
 
-separate router for some admin methods? at least split "list" method into 2 (for normal users & admin, admin can optionally filter on author & see if the note was deleted)
 TODO: add script to create test data (seeding) and a user with given login, pwd and role

@@ -25,6 +25,7 @@ dependencies = [
     "passlib[argon2]>=1.7.4",
     "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
+    "loguru>=0.7.3",
 ]
 
 [dependency-groups]
@@ -36,7 +37,6 @@ dev = [
     "pytest-asyncio",
     "asgi_lifespan",
     "ruff",
-    "mypy",
     "asyncpg-stubs",
 ]
 

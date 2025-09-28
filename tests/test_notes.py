@@ -307,3 +307,48 @@ async def test_get_all_notes_forbidden(user_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
     assert data["detail"] == NotesErrorMessages.access_denied_only_admin
+
+
+async def test_restore_note_by_admin(admin_client: AsyncClient, db_session: AsyncSession) -> None:
+    second_user = await get_user(db_session)
+    factories.NoteFactory.__async_session__ = db_session
+    note = await factories.NoteFactory.create_async(author_id=second_user.id, is_deleted=True)
+
+    response = await admin_client.post(
+        f"/api/notes/{note.id}/restore/",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["id"] == note.id
+
+
+async def test_restore_note_not_deleted(admin_client: AsyncClient, db_session: AsyncSession) -> None:
+    second_user = await get_user(db_session)
+    factories.NoteFactory.__async_session__ = db_session
+    note = await factories.NoteFactory.create_async(author_id=second_user.id, is_deleted=False)
+
+    response = await admin_client.post(
+        f"/api/notes/{note.id}/restore/",
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == NotesErrorMessages.note_not_found
+
+
+async def test_restore_note_does_not_exist(admin_client: AsyncClient) -> None:
+    response = await admin_client.post(
+        "/api/notes/999/restore/",
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == NotesErrorMessages.note_not_found
+
+
+async def test_restore_note_forbidden(user_client: AsyncClient, db_session: AsyncSession) -> None:
+    factories.NoteFactory.__async_session__ = db_session
+    note = await factories.NoteFactory.create_async(author_id=user_client.user.id, is_deleted=True)
+
+    response = await user_client.post(
+        f"/api/notes/{note.id}/restore/",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    data = response.json()
+    assert data["detail"] == NotesErrorMessages.access_denied_only_admin

@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from advanced_alchemy.repository import SQLAlchemyAsyncRepository
 from advanced_alchemy.service import SQLAlchemyAsyncRepositoryService
+from sqlalchemy import true
 from sqlalchemy.sql import not_
 
 from app import models
@@ -56,6 +57,11 @@ class NotesService(SQLAlchemyAsyncRepositoryService[models.Note]):
         instance = await self.get_one(*filters, self.not_deleted_filter)
         self._check_is_admin_or_owner(instance, user)
         return instance
+
+    async def restore(self, item_id: int, **kwargs) -> models.Note:
+        instance = await self.get_one(models.Note.id == item_id, models.Note.is_deleted == true())
+        instance.is_deleted = False
+        return await super().update(data=instance, item_id=item_id, **kwargs)
 
 
 class UsersRepository(SQLAlchemyAsyncRepository[models.User]):
