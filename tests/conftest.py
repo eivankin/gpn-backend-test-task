@@ -63,3 +63,15 @@ async def user_client(
     ) as user_client:
         user_client.user = user
         yield user_client
+
+
+@pytest.fixture
+async def admin_client(
+    client: AsyncClient, db_session: AsyncSession, app: fastapi.FastAPI
+) -> AsyncGenerator[AsyncClient, Any]:
+    token, user = await user_auth(client, db_session, is_admin=True)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test", headers={"Authorization": f"Bearer {token}"}
+    ) as admin_client:
+        admin_client.user = user
+        yield admin_client

@@ -2,7 +2,7 @@ import typing
 
 import fastapi
 from advanced_alchemy.exceptions import NotFoundError
-from advanced_alchemy.extensions.fastapi import filters
+from advanced_alchemy.extensions.fastapi import filters as aa_filters
 from advanced_alchemy.extensions.fastapi.providers import provide_filters
 from advanced_alchemy.service import OffsetPagination
 from fastapi import Depends, status
@@ -23,7 +23,7 @@ ROUTER: typing.Final = fastapi.APIRouter(prefix="/notes")
 @ROUTER.get("/my/", response_model=OffsetPagination[schemas.Note])
 async def list_my_notes(
     filters: typing.Annotated[
-        list[filters.FilterTypes],
+        list[aa_filters.FilterTypes],
         Depends(
             provide_filters(
                 {
@@ -40,6 +40,32 @@ async def list_my_notes(
         notes_service.not_deleted_filter,
         *filters,
     )
+    return notes_service.to_schema(results, total, filters=filters, schema_type=schemas.Note)
+
+
+@ROUTER.get("/", response_model=OffsetPagination[schemas.Note])
+async def list_notes(
+    filters: typing.Annotated[
+        list[aa_filters.FilterTypes],
+        Depends(
+            provide_filters(
+                {
+                    "pagination_type": "limit_offset",
+                }
+            )
+        ),
+    ],
+    notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
+    user: models.User = Depends(get_current_user),
+    author_id: int | None = None,
+) -> OffsetPagination[schemas.Note]:
+    if not user.is_admin:
+        raise fastapi.HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=Errors.access_denied_only_admin
+        ) from None
+    if author_id is not None:
+        filters.append(models.Note.author_id == author_id)
+    results, total = await notes_service.list_and_count(*filters)
     return notes_service.to_schema(results, total, filters=filters, schema_type=schemas.Note)
 
 
@@ -96,7 +122,7 @@ async def delete_note(
         raise fastapi.HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.note_not_found) from None
 
 
-@ROUTER.post("/")
+@ROUTER.post("/", status_code=status.HTTP_201_CREATED)
 async def create_note(
     data: schemas.NoteCreate,
     notes_service: NotesService = FromDI(ioc.Dependencies.notes_service),
@@ -104,6 +130,3 @@ async def create_note(
 ) -> schemas.Note:
     instance = await notes_service.create_with_author(data.model_dump(), author=user)
     return typing.cast("schemas.Note", instance)
-
-
-# TODO: handle restore deleted note by admin

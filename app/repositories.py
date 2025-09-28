@@ -21,7 +21,12 @@ class NotesService(SQLAlchemyAsyncRepositoryService[models.Note]):
     repository_type = NotesRepository
 
     @staticmethod
-    def _check_access(note: models.Note, user: models.User) -> None:
+    def _check_is_owner(note: models.Note, user: models.User) -> None:
+        if note.author_id != user.id:
+            raise AccessDeniedError
+
+    @staticmethod
+    def _check_is_admin_or_owner(note: models.Note, user: models.User) -> None:
         if not user.is_admin and note.author_id != user.id:
             raise AccessDeniedError
 
@@ -32,7 +37,7 @@ class NotesService(SQLAlchemyAsyncRepositoryService[models.Note]):
 
     async def soft_delete(self, item_id: int, user: models.User, **kwargs) -> models.Note:
         instance = await self.get_one(models.Note.id == item_id, self.not_deleted_filter)
-        self._check_access(instance, user)
+        self._check_is_owner(instance, user)
         instance.is_deleted = True
         return await super().update(data=instance, item_id=item_id, **kwargs)
 
@@ -44,12 +49,12 @@ class NotesService(SQLAlchemyAsyncRepositoryService[models.Note]):
         **kwargs,
     ) -> models.Note:
         instance = await self.get_one(models.Note.id == item_id, self.not_deleted_filter)
-        self._check_access(instance, user)
+        self._check_is_owner(instance, user)
         return await super().update(data=data, item_id=item_id, **kwargs)
 
     async def get_one_with_access_check(self, *filters, user: models.User) -> models.Note:
         instance = await self.get_one(*filters, self.not_deleted_filter)
-        self._check_access(instance, user)
+        self._check_is_admin_or_owner(instance, user)
         return instance
 
 

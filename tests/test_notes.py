@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.error_messages import NotesErrorMessages
 from tests import factories
-from tests.utils import get_user
+from tests.utils import get_user, user_auth
 
 
 class InputExamples(StrEnum):
@@ -101,6 +101,20 @@ async def test_get_one_note_forbidden(user_client: AsyncClient, db_session: Asyn
     assert data["detail"] == NotesErrorMessages.access_denied_only_owner
 
 
+async def test_get_one_note_by_admin(admin_client: AsyncClient, db_session: AsyncSession) -> None:
+    second_user = await get_user(db_session)
+    factories.NoteFactory.__async_session__ = db_session
+    note = await factories.NoteFactory.create_async(author_id=second_user.id)
+
+    response = await admin_client.get(
+        f"/api/notes/{note.id}/",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    for k, v in data.items():
+        assert v == getattr(note, k)
+
+
 @pytest.mark.parametrize(
     ("title", "body", "status_code"),
     [
@@ -109,7 +123,7 @@ async def test_get_one_note_forbidden(user_client: AsyncClient, db_session: Asyn
         (InputExamples.null, InputExamples.normal_body, status.HTTP_422_UNPROCESSABLE_CONTENT),
         (InputExamples.long_title, InputExamples.normal_body, status.HTTP_422_UNPROCESSABLE_CONTENT),
         (InputExamples.normal_title, InputExamples.long_body, status.HTTP_422_UNPROCESSABLE_CONTENT),
-        (InputExamples.normal_title, InputExamples.normal_body, status.HTTP_200_OK),
+        (InputExamples.normal_title, InputExamples.normal_body, status.HTTP_201_CREATED),
     ],
 )
 async def test_post_notes(
@@ -126,7 +140,7 @@ async def test_post_notes(
     assert response.status_code == status_code
 
     # get item
-    if status_code == status.HTTP_200_OK:
+    if status_code == status.HTTP_201_CREATED:
         item_id = response.json()["id"]
         response = await user_client.get(
             f"/api/notes/{item_id}/",
@@ -191,14 +205,17 @@ async def test_put_notes(
         assert body != result["body"]
 
 
-async def test_put_notes_forbidden(user_client: AsyncClient, db_session: AsyncSession) -> None:
+@pytest.mark.parametrize("is_admin", [False, True])
+async def test_put_notes_forbidden(client: AsyncClient, db_session: AsyncSession, is_admin: bool) -> None:
+    token, _ = await user_auth(client, db_session, is_admin)
     second_user = await get_user(db_session)
     factories.NoteFactory.__async_session__ = db_session
     note = await factories.NoteFactory.create_async(author_id=second_user.id)
 
-    response = await user_client.put(
+    response = await client.put(
         f"/api/notes/{note.id}/",
         json={"title": "some", "body": "once told me"},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
@@ -229,17 +246,64 @@ async def test_delete_note_does_not_exist(user_client: AsyncClient) -> None:
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-async def test_delete_note_forbidden(user_client: AsyncClient, db_session: AsyncSession) -> None:
+@pytest.mark.parametrize("is_admin", [False, True])
+async def test_delete_note_forbidden(client: AsyncClient, db_session: AsyncSession, is_admin: bool) -> None:
+    token, _ = await user_auth(client, db_session, is_admin)
     second_user = await get_user(db_session)
     factories.NoteFactory.__async_session__ = db_session
     note = await factories.NoteFactory.create_async(author_id=second_user.id)
 
-    response = await user_client.delete(
+    response = await client.delete(
         f"/api/notes/{note.id}/",
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     data = response.json()
     assert data["detail"] == NotesErrorMessages.access_denied_only_owner
 
 
-# TODO: test admin methods
+async def test_get_all_notes_by_admin(admin_client: AsyncClient, db_session: AsyncSession) -> None:
+    second_user = await get_user(db_session)
+    third_user = await get_user(db_session)
+
+    factories.NoteFactory.__async_session__ = db_session
+    first_note = await factories.NoteFactory.create_async(author_id=second_user.id)
+    second_note = await factories.NoteFactory.create_async(author_id=third_user.id, is_deleted=True)
+
+    response = await admin_client.get(
+        "/api/notes/",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data["items"]) == len([first_note, second_note])
+    for k, v in data["items"][0].items():
+        assert v == getattr(first_note, k)
+    for k, v in data["items"][1].items():
+        assert v == getattr(second_note, k)
+
+
+async def test_get_all_user_by_admin(admin_client: AsyncClient, db_session: AsyncSession) -> None:
+    second_user = await get_user(db_session)
+    third_user = await get_user(db_session)
+
+    factories.NoteFactory.__async_session__ = db_session
+    await factories.NoteFactory.create_async(author_id=second_user.id)
+    second_note = await factories.NoteFactory.create_async(author_id=third_user.id, is_deleted=True)
+
+    response = await admin_client.get(
+        f"/api/notes/?author_id={third_user.id}",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data["items"]) == 1
+    for k, v in data["items"][0].items():
+        assert v == getattr(second_note, k)
+
+
+async def test_get_all_notes_forbidden(user_client: AsyncClient) -> None:
+    response = await user_client.get(
+        "/api/notes/",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    data = response.json()
+    assert data["detail"] == NotesErrorMessages.access_denied_only_admin
