@@ -92,3 +92,6 @@ exclude_also = [
 
 [tool.coverage.run]
 concurrency = ["thread", "greenlet"]
+omit = [
+    "scripts/*",
+]
