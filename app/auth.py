@@ -14,7 +14,7 @@ from app.schemas.auth import TokenData
 from app.settings import settings
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token/")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/users/token/")
 
 
 async def authenticate_user(

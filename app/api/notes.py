@@ -1,3 +1,4 @@
+import sys
 import typing
 
 import fastapi
@@ -19,6 +20,8 @@ from app.settings import settings
 
 ROUTER: typing.Final = fastapi.APIRouter(prefix="/notes")
 
+logger.remove()
+logger.add(sys.stderr, level=settings.log_level.upper(), filter=lambda record: record["name"] != "app.api.notes")
 logger.add(
     settings.actions_log_file,
     level=settings.log_level.upper(),
@@ -53,7 +56,7 @@ async def list_my_notes(
         return notes_service.to_schema(results, total, filters=filters, schema_type=schemas.Note)
 
 
-@ROUTER.get("/", response_model=OffsetPagination[schemas.Note])
+@ROUTER.get("/", response_model=OffsetPagination[schemas.NoteAdmin])
 async def list_notes(
     filters: typing.Annotated[
         list[aa_filters.FilterTypes],
@@ -81,7 +84,7 @@ async def list_notes(
             extra_info = f" for author with ID: {author_id}"
         results, total = await notes_service.list_and_count(*filters)
         logger.info("successfully listed notes" + extra_info)
-        return notes_service.to_schema(results, total, filters=filters, schema_type=schemas.Note)
+        return notes_service.to_schema(results, total, filters=filters, schema_type=schemas.NoteAdmin)
 
 
 @ROUTER.get("/{note_id}/")
