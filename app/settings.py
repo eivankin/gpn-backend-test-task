@@ -28,6 +28,13 @@ class Settings(pydantic_settings.BaseSettings):
     cors_allowed_headers: list[str] = [""]
     cors_exposed_headers: list[str] = []
 
+    actions_log_file: str = "actions.log"
+
+    # JWT token settings
+    jwt_algorithm: str = "HS256"
+    jwt_token_expire_minutes: int = 30
+    jwt_secret_key: str = ""  # change me!
+
     @property
     def db_dsn_parsed(self) -> URL:
         return make_url(self.db_dsn)

@@ -1,4 +1,5 @@
 default: install lint build test
+run-demo: build seed run
 
 down:
     docker compose down --remove-orphans
@@ -11,6 +12,9 @@ test *args: down && down
 
 run:
     docker compose run --service-ports application sh -c "sleep 1 && uv run alembic upgrade head && uv run python -m app"
+
+seed:
+    docker compose run --service-ports application sh -c "sleep 1 && uv run alembic upgrade head && uv run python -m scripts.seed_db"
 
 migration *args: && down
     docker compose run application sh -c "sleep 1 && uv run alembic upgrade head && uv run alembic revision --autogenerate {{ args }}"
@@ -25,4 +29,3 @@ install:
 lint:
     uv run ruff format .
     uv run ruff check . --fix
-    uv run mypy .

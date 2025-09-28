@@ -22,6 +22,10 @@ dependencies = [
     # tracing
     "opentelemetry-instrumentation-asyncpg",
     "opentelemetry-instrumentation-sqlalchemy",
+    "passlib[argon2]>=1.7.4",
+    "pyjwt>=2.10.1",
+    "python-multipart>=0.0.20",
+    "loguru>=0.7.3",
 ]
 
 [dependency-groups]
@@ -33,7 +37,6 @@ dev = [
     "pytest-asyncio",
     "asgi_lifespan",
     "ruff",
-    "mypy",
     "asyncpg-stubs",
 ]
 
@@ -58,6 +61,11 @@ ignore = [
     "COM812", # flake8-commas "Trailing comma missing"
     "ISC001", # flake8-implicit-str-concat
     "S105", # Possible hardcoded password
+    "S106", # Possible hardcoded password
+    "ANN002", # Missing *args annotation
+    "ANN003", # Missing **kwargs annotation
+    "TD002", # Missing author in TODO
+    "TD003", # Missing issue link in TODO
 ]
 isort.lines-after-imports = 2
 isort.no-lines-before = ["standard-library", "local-folder"]
@@ -84,3 +92,6 @@ exclude_also = [
 
 [tool.coverage.run]
 concurrency = ["thread", "greenlet"]
+omit = [
+    "scripts/*",
+]

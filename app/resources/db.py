@@ -1,12 +1,9 @@
-import logging
 import typing
 
+from loguru import logger
 from sqlalchemy.ext import asyncio as sa
 
 from app.settings import settings
-
-
-logger = logging.getLogger(__name__)
 
 
 async def create_sa_engine() -> typing.AsyncIterator[sa.AsyncEngine]:

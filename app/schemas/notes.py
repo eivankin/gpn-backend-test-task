@@ -21,3 +21,8 @@ class NoteCreate(NoteBase):
 
 class Note(NoteBase):
     id: PositiveInt
+    author_id: PositiveInt
+
+
+class NoteAdmin(Note):
+    is_deleted: bool
